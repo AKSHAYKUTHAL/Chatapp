@@ -1,0 +1,98 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8"/>
+    <title>Chat Room</title>
+    <link rel="stylesheet" href="{% static 'css/custom.css' %}">
+</head>
+<body>
+    <p>User : {{username}}</p>
+    <div id="chat-container">
+        <div id="chat-messages">
+            
+
+            {% for message in chats %}
+                <div class="{% if message.author.username == username %}sent{% else %}replies{% endif %}">
+                    <span class="author">{{ message.author.username }}: </span>
+                    <span>{{ message.content }}</span>
+                </div>
+            {% endfor %}
+                
+
+        </div>
+        <div id="chat-input-area">
+            <input id="chat-message-input" type="text" placeholder="Type your message here...">
+            <input id="chat-message-submit" type="button" value="Send">
+        </div>
+    </div>
+    {{ room_name|json_script:"room-name" }}
+</body>
+<script src="{% static 'reconnecting-websocket.js' %}"></script>
+<script>
+    var username = {{username}};
+    const roomName = JSON.parse(document.getElementById('room-name').textContent);
+    console.log(roomName)
+    const chatSocket = new ReconnectingWebSocket(
+        'ws://'
+        + window.location.host
+        + '/ws/chat/'
+        + roomName
+        + '/'
+    );
+
+    chatSocket.onmessage = function(e) {
+        const data = JSON.parse(e.data);
+        var message = data['message'];
+        var author = message['author'];
+
+
+        var messageElement = document.createElement('div');
+        var authorElement = document.createElement('span');
+        var messageContentElement = document.createElement('span');
+
+        authorElement.textContent = author + ': ';
+        messageContentElement.textContent = message.content;
+
+        authorElement.className = 'author';
+
+        messageElement.appendChild(authorElement);
+        messageElement.appendChild(messageContentElement);
+
+        if (author === username) {
+            messageElement.className = 'sent';
+        } else {
+            messageElement.className = 'replies';
+        }
+
+
+        document.querySelector('#chat-messages').appendChild(messageElement);
+    };
+
+    chatSocket.onclose = function(e) {
+        console.error('Chat socket closed unexpectedly');
+    };
+
+    document.querySelector('#chat-message-input').focus();
+    document.querySelector('#chat-message-input').onkeyup = function(e) {
+        if (e.key === 'Enter') {
+            document.querySelector('#chat-message-submit').click();
+        }
+    };
+
+    document.querySelector('#chat-message-submit').onclick = function(e) {
+        const messageInputDom = document.querySelector('#chat-message-input');
+        const message = messageInputDom.value;
+        const receiver = 'receiver_username';
+    
+        chatSocket.send(JSON.stringify({
+            'message': message,
+            'command': 'new_message',
+            'from': username,
+            'room_name': roomName,
+            'to': receiver
+        }));
+        messageInputDom.value = '';
+    };
+</script>
+</html>

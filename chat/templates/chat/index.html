@@ -1,0 +1,56 @@
+{% load static %}
+{% load custom_filters %}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8"/>
+    <title>Chat Rooms</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/custom.css' %}">
+</head>
+<body>
+    <div id="room-entry">
+        <div class="auth-container" style="float: right;">
+            {% if request.user.is_authenticated %}
+                <a href="{% url 'logout' %}" class="btn btn-danger">Logout</a>
+                <p class="font-weight-bold">{{ request.user.username }}</p>
+            {% else %}
+                <a href="{% url 'login' %}" class="btn btn-success">Login</a>
+            {% endif %}
+        </div>
+
+        <div id="user-selection">
+            <h3>Select a User to Chat With:</h3>
+            {% for user_profile in user_profiles %}
+                {% with room_name=user_rooms|get_item:user_profile.user.username %}
+                    <form action="{% url 'room' room_name %}" method="post">
+                        {% csrf_token %}
+                        <input type="submit" value="{{ user_profile.user.username }}" id="room-name-submit" class="user-chat-button">
+                    </form>
+                    <br><br>
+                {% endwith %}
+            {% empty %}
+                <p>No other users available to chat with.</p>
+            {% endfor %}
+
+        </div>
+    </div>
+
+    
+
+    <script>
+        document.querySelector('#room-name-input').focus();
+        document.querySelector('#room-name-input').onkeyup = function(e) {
+            if (e.key === 'Enter') {
+                document.querySelector('#room-name-submit').click();
+            }
+        };
+
+        document.querySelector('#room-name-submit').onclick = function(e) {
+            var roomName = document.querySelector('#room-name-input').value;
+            window.location.pathname = '/chat/' + roomName + '/';
+        };
+    </script>
+</body>
+</html>
